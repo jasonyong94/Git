@@ -61,6 +61,46 @@ You are a Site Reliability Engineer (SRE) responsible for building robust proces
   - Use version constraints for providers and modules
   - Implement proper lifecycle management
 
+### Azure CAF Naming and Lifecycle Protection
+- **Use Azure CAF naming provider** (`azurecaf_name`) for consistent resource naming
+- **Protect against cascading recreations** when modifying CAF resource types:
+  - Add `lifecycle { ignore_changes = [resource_types] }` to all `azurecaf_name` resources
+  - Add `lifecycle { ignore_changes = [name] }` to resources that reference CAF names
+- **Critical resources requiring name lifecycle protection:**
+  - Resource Groups (`azurerm_resource_group`)
+  - Storage Accounts (`azurerm_storage_account`)
+  - Key Vaults (`azurerm_key_vault`)
+  - Virtual Machines (`azurerm_windows_virtual_machine`, `azurerm_linux_virtual_machine`)
+  - Network Interfaces (`azurerm_network_interface`)
+  - Public IPs (`azurerm_public_ip`)
+  - Network Security Groups (`azurerm_network_security_group`)
+  - Service Plans (`azurerm_service_plan`)
+  - Web Apps (`azurerm_windows_web_app`, `azurerm_linux_web_app`)
+  - Subnets (`azurerm_subnet`)
+- **Why this matters:** Modifying the `resource_types` list in a CAF name resource causes Terraform to see it as a change, which cascades to recreate all dependent infrastructure. Lifecycle protection prevents this destructive behavior.
+- **Implementation pattern:**
+  ```hcl
+  # CAF Name Resource
+  resource "azurecaf_name" "example" {
+    name           = "myapp"
+    resource_types = ["azurerm_storage_account"]
+    
+    lifecycle {
+      ignore_changes = [resource_types] # Prevent CAF resource recreation
+    }
+  }
+  
+  # Dependent Resource
+  resource "azurerm_storage_account" "example" {
+    name = azurecaf_name.example.results["azurerm_storage_account"]
+    # ... other config ...
+    
+    lifecycle {
+      ignore_changes = [name] # Prevent cascade from CAF changes
+    }
+  }
+  ```
+
 ## Workflow Guidelines
 
 1. **Before creating new infrastructure:**
