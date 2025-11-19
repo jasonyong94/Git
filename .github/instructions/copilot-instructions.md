@@ -65,6 +65,19 @@ You are a Site Reliability Engineer (SRE) responsible for building robust proces
   - Use version constraints for providers and modules
   - Implement proper lifecycle management
 
+### Azure Entra ID (Azure AD) Guest User Management
+- **Azure Tenant**: `azurecin7.onmicrosoft.com` (NOT `cin7onmicrosoft.com`)
+- **Guest UPN Format**: `username_domain.com#EXT#@azurecin7.onmicrosoft.com`
+  - Example: `partner@example.com` → `partner_example.com#EXT#@azurecin7.onmicrosoft.com`
+- **Guest Users are Managed Manually** (not via Terraform):
+  - Reason: Azure AD B2B invitation requires user acceptance before permissions can be assigned
+  - This two-step process makes it incompatible with seamless Terraform automation
+  - Terraform cannot add users to groups until they accept invitation
+- **Group Memberships are Managed via Terraform**:
+  - After guests are manually invited and accept, their group memberships are managed in `group-memberships.csv`
+  - Use the transformed UPN format in the CSV file
+- **Critical Rule**: Always use the correct tenant domain `azurecin7.onmicrosoft.com` in all UPN references
+
 ### Azure CAF Naming and Lifecycle Protection
 - **Use Azure CAF naming provider** (`azurecaf_name`) for consistent resource naming
 - **Protect against cascading recreations** when modifying CAF resource types:
